@@ -3,8 +3,8 @@
  * 
  * KIT107 Assignment 2 -- Collection Implementation
  * 
- * @author <<your name and student ID number>>
- * @version	<<date of completion>>
+ * @author <<Muhtasim Nahiyan>>
+ * @version	<<14/09/2026>>
  */
 
 
@@ -22,8 +22,8 @@ public class Collection implements CollectionInterface
     protected int numCandidates;    // the number of candidates still in the election
     protected int numBallots;       // how many ballot papers were submitted this election
     protected int numElected;       // the number of confirmed elections so far
+    protected Cluster[] candidates; // array-based collection of candidate clusters
 
-	/**
 	 * Constructor
 	 * 
      * @param numReps int -- the number of representatives to be elected
@@ -34,10 +34,15 @@ public class Collection implements CollectionInterface
 	 * Informally: Initialise the Collection of ballot clusters ('candidates').
 	 */
     public Collection(int numReps)
-    {
-//COMPLETE ME!!!
-    }
-
+{
+    NUMBER_TO_BE_ELECTED = numReps;
+    quota = 0;
+    electorateName = "";
+    numCandidates = 0;
+    numBallots = 0;
+    numElected = 0;
+    candidates = new Cluster[MAX_CANDIDATES];
+}
 	/**
 	 * isEmpty()
 	 * 
@@ -50,9 +55,9 @@ public class Collection implements CollectionInterface
 	 */
     public boolean isEmpty()
     {
-//COMPLETE ME!!!
-        return false;  // change me -- this is just to allow the program to compile
+        return (numCandidates == 0);
     }
+
 
     /**
      * 
@@ -98,7 +103,34 @@ public class Collection implements CollectionInterface
 	 */
     public void addBallotToCollection(Ballot votes)
     {
-//COMPLETE ME!!!
+        int i;
+        int index;
+
+        if (isEmpty())
+        {
+            electorateName = votes.getElectorate();
+
+            for (i = 0; i < votes.getMaxVote(); i++)
+            {
+                candidates[i] = new Cluster(votes.getVotes()[i]);
+            }
+
+            numCandidates = votes.getMaxVote();
+        }
+
+        index = 0;
+        while ((index < numCandidates) &&
+               (!candidates[index].getBundleName().equalsIgnoreCase(votes.getSelection())))
+        {
+            index++;
+        }
+
+        if (index < numCandidates)
+        {
+            candidates[index].addBallotToCluster(votes);
+        }
+
+        numBallots++;
     }
 
     /**
@@ -145,7 +177,32 @@ public class Collection implements CollectionInterface
 	 */
     public void showDistribution()
     {
-//COMPLETE ME!!!
+        final int SCALE = 150;
+
+        if (isEmpty())
+        {
+            System.out.println("No data!");
+        }
+        else
+        {
+            System.out.println();
+
+            for (int i = 0; i < numCandidates; i++)
+            {
+                System.out.printf("%-15s", candidates[i].getBundleName());
+
+                int stars = (int)(candidates[i].getWeightedCount() / SCALE);
+
+                for (int j = 0; j < stars; j++)
+                {
+                    System.out.print("*");
+                }
+
+                System.out.println(" " + candidates[i].getWeightedCount());
+            }
+
+            System.out.println();
+        }
     }
 
     /**
@@ -168,9 +225,41 @@ public class Collection implements CollectionInterface
 	 * Informally: Print the horizontal histogram of ballots per preference
      *                  for the given candidate
 	 */
-    public void showCandidateVotes(String candidate)
+   public void showCandidateVotes(String candidate)
     {
-//COMPLETE ME!!!
+        final int SCALE = 150;
+
+        if (isEmpty())
+        {
+            System.out.println("No data!");
+        }
+        else
+        {
+            System.out.println();
+
+            for (int preference = 0; preference < numCandidates; preference++)
+            {
+                int total = 0;
+
+                for (int i = 0; i < numCandidates; i++)
+                {
+                    total += candidates[i].votesFor(candidate, preference);
+                }
+
+                System.out.printf("%-15s", "#" + (preference + 1));
+
+                int stars = total / SCALE;
+
+                for (int j = 0; j < stars; j++)
+                {
+                    System.out.print("*");
+                }
+
+                System.out.println(" " + total);
+            }
+
+            System.out.println();
+        }
     }
 
     /**
@@ -329,7 +418,34 @@ public class Collection implements CollectionInterface
 	 */
     protected void transfer(int index, double residual)
     {
-//COMPLETE ME!!!
+        int remaining = candidates[index].getRawCount();
+
+        for (int i = 0; i < remaining; i++)
+        {
+            Ballot ballot = candidates[index].transfer(residual);
+            boolean placed = false;
+
+            while ((!placed) && (!ballot.exhausted()))
+            {
+                int target = 0;
+
+                while ((target < numCandidates) &&
+                       (!candidates[target].getBundleName().equalsIgnoreCase(ballot.getSelection())))
+                {
+                    target++;
+                }
+
+                if (target < numCandidates)
+                {
+                    candidates[target].addBallotToCluster(ballot);
+                    placed = true;
+                }
+                else
+                {
+                    ballot.update();
+                }
+            }
+        }
     }
 
     /**
@@ -415,8 +531,39 @@ public class Collection implements CollectionInterface
 	 */
     public String distributePreferences()
     {
-//COMPLETE ME!!!
-        return "UNFINISHED";  // change me -- this is just to allow the program to compile
+        final int CANDIDATE = 0;
+        final int VALUE = 1;
+
+        String result = "";
+
+        if (isEmpty() || (numElected >= NUMBER_TO_BE_ELECTED))
+        {
+            System.out.println("No data!");
+        }
+        else
+        {
+            double[] winner = maxVotes();
+            int index = (int)winner[CANDIDATE];
+
+            if (winner[VALUE] >= quota)
+            {
+                String name = candidates[index].getBundleName();
+                elect(index);
+                removeCandidate(index);
+                result = name + " elected!";
+            }
+            else
+            {
+                double[] loser = minVotes();
+                index = (int)loser[CANDIDATE];
+                String name = candidates[index].getBundleName();
+                eliminate(index);
+                removeCandidate(index);
+                result = name + " eliminated!";
+            }
+        }
+
+        return result;
     }
 
 	/**

@@ -3,8 +3,8 @@
  * 
  * KIT107 Assignment 2 -- Harness Class
  * 
- * @author Julian Dermoudy
- * @version	3/8/2026
+ * @author Muhtasim Nahiyan
+ * @version	14/09/2026
  * 
  * FILE IS COMPLETE but you can alter LIMIT and POSITIONS and also
  * 		enable/disable output during development
